@@ -18,6 +18,7 @@ const App = () => {
     const [enteredFileId, setEnteredFileId] = useState<string>('');
     const [downloadPassword, setDownloadPassword] = useState<string>('');
     const [downloadError, setDownloadError] = useState<string>('');
+    const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
     const { getRootProps, getInputProps } = useDropzone({
         onDrop: (acceptedFiles: File[]) => {
@@ -53,24 +54,71 @@ const App = () => {
             setDownloadError('Please enter both File ID and Password');
             return;
         }
-
+    
+        setIsDownloading(true);
+        setDownloadError('');
+    
         try {
             const response = await axios.post(
-                `${API_BASE}/api/download`,
+                import.meta.env.VITE_API_BASE + '/api/download',
                 { fileId: enteredFileId, password: downloadPassword },
-                { responseType: 'blob' }
+                {
+                    responseType: 'blob',
+                    transformResponse: [(data, headers) => {
+                        // Preserve MIME type from headers
+                        return new Blob([data], { 
+                            type: headers['content-type'] 
+                        });
+                    }]
+                }
             );
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+    
+            // Extract filename from headers
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = `file-${Date.now()}`;
+            
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename="?(.+?)"?(;|$)/);
+                if (fileNameMatch && fileNameMatch[1]) {
+                    fileName = fileNameMatch[1];
+                }
+            }
+    
+            // Create download link
+            const url = window.URL.createObjectURL(response.data);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `downloaded_file`);
+            link.setAttribute('download', fileName);
+            link.style.display = 'none';
+            
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            setDownloadError('');
-        } catch {
-            setDownloadError('Download failed: Invalid File ID or Password');
+            
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(link);
+            
+            // Reset form
+            setEnteredFileId('');
+            setDownloadPassword('');
+    
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error) && error.response) {
+                switch (error.response.status) {
+                    case 401:
+                        setDownloadError('Invalid password');
+                        break;
+                    case 404:
+                        setDownloadError('File not found');
+                        break;
+                    default:
+                        setDownloadError('Download failed. Please try again.');
+                }
+            } else {
+                setDownloadError('Network error. Check your connection.');
+            }
+        } finally {
+            setIsDownloading(false);
         }
     };
 
