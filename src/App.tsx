@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import axios from "axios";
@@ -35,7 +37,7 @@ const App = () => {
 
         try {
             const response = await axios.post<UploadResponse>(
-                'http://localhost:5000/api/upload',
+                `${API_BASE}/api/upload`,
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
@@ -54,7 +56,7 @@ const App = () => {
 
         try {
             const response = await axios.post(
-                'http://localhost:5000/api/download',
+                `${API_BASE}/api/download`,
                 { fileId: enteredFileId, password: downloadPassword },
                 { responseType: 'blob' }
             );
