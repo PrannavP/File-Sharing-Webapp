@@ -18,7 +18,7 @@ const App = () => {
     const [enteredFileId, setEnteredFileId] = useState<string>('');
     const [downloadPassword, setDownloadPassword] = useState<string>('');
     const [downloadError, setDownloadError] = useState<string>('');
-    // const [isDownloading, setIsDownloading] = useState<boolean>(false);
+    const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
     const { getRootProps, getInputProps } = useDropzone({
         onDrop: (acceptedFiles: File[]) => {
@@ -118,9 +118,9 @@ const App = () => {
                 setDownloadError('Network error. Check your connection.');
             }
         } 
-        // finally {
-        //     setIsDownloading(false);
-        // }
+        finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
